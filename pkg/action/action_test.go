@@ -106,5 +106,15 @@ func withFallbackAnnotations() chartOption {
 		opts.Chart.Metadata.Annotations["catalog.cattle.io/release-name"] = "fleet"
 	}
 }
+
+func withSharedDeps() chartOption {
+	return func(opts *chartOptions) {
+		if opts.Chart.Metadata.Annotations == nil {
+			opts.Chart.Metadata.Annotations = make(map[string]string)
+		}
+		opts.Chart.Metadata.Annotations["hypper.cattle.io/shared"] = "|" +
+			"- name: prometheus" +
+			"  version: 13.3.1" +
+			"  repository: https://prometheus-community.github.io/helm-charts"
 	}
 }
