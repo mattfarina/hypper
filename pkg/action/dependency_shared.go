@@ -52,8 +52,8 @@ func (d *SharedDependency) List(chartpath string, out io.Writer) error {
 		return err
 	}
 
-	if c.Metadata.Dependencies == nil {
-		fmt.Fprintf(out, "WARNING: no dependencies at %s\n", filepath.Join(chartpath, "charts"))
+	if val, ok := c.Metadata.Annotations["hypper.cattle.io/shared-dependencies"]; !ok {
+		fmt.Fprintf(out, "WARNING: no shared dependencies at %s\n", filepath.Join(chartpath, "charts"))
 		return nil
 	}
 

@@ -18,3 +18,9 @@ name: chart-with-uncompressed-dependencies
 sources:
 - https://github.com/bitnami/bitnami-docker-wordpress
 version: 2.1.8
+annotations:
+  hypper.cattle.io/shared-dependencies: |
+   - name: bar            # Chart instance name in the namespace
+     namespace: default   # The namespace to look in
+     chart: foo           # The name of the chart
+     version: ^1.2.3      # A version range of supported versions
