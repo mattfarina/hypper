@@ -19,8 +19,10 @@ package action
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/gosuri/uitable"
+	"gopkg.in/yaml.v2"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -41,6 +43,14 @@ func NewSharedDependency() *SharedDependency {
 	}
 }
 
+type yamlDependencies struct {
+	// TODO array of dependencies
+	name      string `yaml:"name"`
+	namespace string `yaml:"namespace"`
+	chart     string `yaml:"chart"`
+	version   string `yaml:"version"`
+}
+
 // List executes 'helm dependency list'.
 func (d *SharedDependency) List(chartpath string, out io.Writer) error {
 	c, err := loader.Load(chartpath)
@@ -48,8 +58,9 @@ func (d *SharedDependency) List(chartpath string, out io.Writer) error {
 		return err
 	}
 
-	if val, ok := c.Metadata.Annotations["hypper.cattle.io/shared-dependencies"]; !ok {
-		fmt.Fprintf(out, "WARNING: no shared dependencies at %s\n", filepath.Join(chartpath, "charts"))
+	_, ok := c.Metadata.Annotations["hypper.cattle.io/shared-dependencies"]
+	if !ok {
+		fmt.Fprintf(out, "WARNING: no shared dependencies in %s\n", chartpath)
 		return nil
 	}
 
@@ -66,11 +77,20 @@ func (d *SharedDependency) SharedDependencyStatus(chartpath string, dep *chart.D
 
 // printSharedDependencies prints all of the shared dependencies in the yaml file.
 func (d *SharedDependency) printSharedDependencies(chartpath string, out io.Writer, c *chart.Chart) {
+
+	depList, _ := c.Metadata.Annotations["hypper.cattle.io/shared-dependencies"]
+	var yamlDeps yamlDependencies
+	err := yaml.Unmarshal([]byte(depList), &yamlDeps)
+	if err != nil {
+		fmt.Fprintf(out, "ERROR: Chart.yaml metadata is malformed for chart %s\n", chartpath)
+		os.exit(1)
+	}
+
 	table := uitable.New()
 	table.MaxColWidth = 80
-	table.AddRow("NAME", "VERSION", "REPOSITORY", "STATUS")
-	for _, row := range c.Metadata.Dependencies {
-		table.AddRow(row.Name, row.Version, row.Repository, d.SharedDependencyStatus(chartpath, row, c))
+	table.AddRow("NAME", "VERSION", "NAMESPACE", "REPOSITORY", "STATUS")
+	for _, row := range depList {
+		table.AddRow(row.name, row.version, row.namespace, "TODO", d.SharedDependencyStatus(chartpath, row, c))
 	}
 	fmt.Fprintln(out, table)
 }
