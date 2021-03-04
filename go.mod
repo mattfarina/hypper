@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/Masterminds/log-go v0.4.0
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/fatih/color v1.10.0
 	github.com/gosuri/uitable v0.0.4
 	github.com/kyokomi/emoji/v2 v2.2.8
