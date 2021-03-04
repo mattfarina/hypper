@@ -118,3 +118,9 @@ func withSharedDeps() chartOption {
 			"  repository: https://prometheus-community.github.io/helm-charts"
 	}
 }
+
+func withName(name string) chartOption {
+	return func(opts *chartOptions) {
+		opts.Metadata.Name = name
+	}
+}
