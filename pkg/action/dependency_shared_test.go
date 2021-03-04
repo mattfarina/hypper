@@ -23,8 +23,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 
@@ -103,60 +101,4 @@ func TestSharedDependencyStatus_Dashes(t *testing.T) {
 	if stat != "ok" {
 		t.Errorf("Unexpected status: %q", stat)
 	}
-}
-
-func TestStatArchiveForStatus(t *testing.T) {
-	// Make a temp dir
-	dir, err := ioutil.TempDir("", "helmtest-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-
-	chartpath := filepath.Join(dir, "charts")
-	if err := os.MkdirAll(chartpath, 0700); err != nil {
-		t.Fatal(err)
-	}
-
-	// unsaved chart
-	lilith := buildChart(withName("lilith"))
-
-	// dep referring to chart
-	dep := &chart.Dependency{
-		Name:    "lilith",
-		Version: "1.2.3",
-	}
-
-	is := assert.New(t)
-
-	lilithpath := filepath.Join(chartpath, "lilith-1.2.3.tgz")
-	is.Empty(statArchiveForStatus(lilithpath, dep))
-
-	// save the chart (version 0.1.0, because that is the default)
-	where, err := chartutil.Save(lilith, chartpath)
-	is.NoError(err)
-
-	// Should get "wrong version" because we asked for 1.2.3 and got 0.1.0
-	is.Equal("wrong version", statArchiveForStatus(where, dep))
-
-	// Break version on dep
-	dep = &chart.Dependency{
-		Name:    "lilith",
-		Version: "1.2.3.4.5",
-	}
-	is.Equal("invalid version", statArchiveForStatus(where, dep))
-
-	// Break the name
-	dep = &chart.Dependency{
-		Name:    "lilith2",
-		Version: "1.2.3",
-	}
-	is.Equal("misnamed", statArchiveForStatus(where, dep))
-
-	// Now create the right version
-	dep = &chart.Dependency{
-		Name:    "lilith",
-		Version: "0.1.0",
-	}
-	is.Equal("ok", statArchiveForStatus(where, dep))
 }

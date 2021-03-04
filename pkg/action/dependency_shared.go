@@ -19,11 +19,7 @@ package action
 import (
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/gosuri/uitable"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -59,7 +55,6 @@ func (d *SharedDependency) List(chartpath string, out io.Writer) error {
 
 	d.printSharedDependencies(chartpath, out, c)
 	fmt.Fprintln(out)
-	d.printMissing(chartpath, out, c.Metadata.Dependencies)
 	return nil
 }
 
@@ -145,38 +140,6 @@ func (d *SharedDependency) SharedDependencyStatus(chartpath string, dep *chart.D
 	return "unpacked"
 }
 
-// stat an archive and return a message if the stat is successful
-//
-// This is a refactor of the code originally in dependencyStatus. It is here to
-// support legacy behavior, and should be removed in Helm 4.
-func statArchiveForStatus(archive string, dep *chart.Dependency) string {
-	if _, err := os.Stat(archive); err == nil {
-		c, err := loader.Load(archive)
-		if err != nil {
-			return "corrupt"
-		}
-		if c.Name() != dep.Name {
-			return "misnamed"
-		}
-
-		if c.Metadata.Version != dep.Version {
-			constraint, err := semver.NewConstraint(dep.Version)
-			if err != nil {
-				return "invalid version"
-			}
-
-			v, err := semver.NewVersion(c.Metadata.Version)
-			if err != nil {
-				return "invalid version"
-			}
-
-			if !constraint.Check(v) {
-				return "wrong version"
-			}
-		}
-		return "ok"
-	}
-	return ""
 }
 
 // printSharedDependencies prints all of the shared dependencies in the yaml file.
@@ -188,41 +151,4 @@ func (d *SharedDependency) printSharedDependencies(chartpath string, out io.Writ
 		table.AddRow(row.Name, row.Version, row.Repository, d.SharedDependencyStatus(chartpath, row, c))
 	}
 	fmt.Fprintln(out, table)
-}
-
-// printMissing prints warnings about charts that are present on disk, but are
-// not in Charts.yaml.
-func (d *SharedDependency) printMissing(chartpath string, out io.Writer, reqs []*chart.Dependency) {
-	folder := filepath.Join(chartpath, "charts/*")
-	files, err := filepath.Glob(folder)
-	if err != nil {
-		fmt.Fprintln(out, err)
-		return
-	}
-
-	for _, f := range files {
-		fi, err := os.Stat(f)
-		if err != nil {
-			fmt.Fprintf(out, "Warning: %s\n", err)
-		}
-		// Skip anything that is not a directory and not a tgz file.
-		if !fi.IsDir() && filepath.Ext(f) != ".tgz" {
-			continue
-		}
-		c, err := loader.Load(f)
-		if err != nil {
-			fmt.Fprintf(out, "WARNING: %q is not a chart.\n", f)
-			continue
-		}
-		found := false
-		for _, d := range reqs {
-			if d.Name == c.Name() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			fmt.Fprintf(out, "WARNING: %q is not in Chart.yaml.\n", f)
-		}
-	}
 }
