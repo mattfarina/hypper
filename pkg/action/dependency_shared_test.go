@@ -1,5 +1,5 @@
 /*
-Copyright The Helm Authors.
+Copyright The Helm Authors, SUSE
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,9 +25,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"helm.sh/helm/v3/internal/test"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
+
+	"github.com/rancher-sandbox/hypper/internal/test"
 )
 
 func TestList(t *testing.T) {
@@ -57,16 +58,16 @@ func TestList(t *testing.T) {
 		},
 	} {
 		buf := bytes.Buffer{}
-		if err := NewDependency().List(tcase.chart, &buf); err != nil {
+		if err := NewSharedDependency().List(tcase.chart, &buf); err != nil {
 			t.Fatal(err)
 		}
 		test.AssertGoldenBytes(t, buf.Bytes(), tcase.golden)
 	}
 }
 
-// TestDependencyStatus_Dashes is a regression test to make sure that dashes in
+// TestsharedDependencyStatus_Dashes is a regression test to make sure that dashes in
 // chart names do not cause resolution problems.
-func TestDependencyStatus_Dashes(t *testing.T) {
+func TestSharedDependencyStatus_Dashes(t *testing.T) {
 	// Make a temp dir
 	dir, err := ioutil.TempDir("", "helmtest-")
 	if err != nil {
@@ -98,7 +99,7 @@ func TestDependencyStatus_Dashes(t *testing.T) {
 	}
 
 	// Now try to get the deps
-	stat := NewDependency().dependencyStatus(dir, dep, first)
+	stat := NewSharedDependency().SharedDependencyStatus(dir, dep, first)
 	if stat != "ok" {
 		t.Errorf("Unexpected status: %q", stat)
 	}

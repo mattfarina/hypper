@@ -1,5 +1,5 @@
 /*
-Copyright The Helm Authors.
+Copyright The Helm Authors, SUSE.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,26 +26,27 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/gosuri/uitable"
 
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 )
 
-// Dependency is the action for building a given chart's dependency tree.
+// SharedDependency is the action for building a given chart's shared dependency tree.
 //
-// It provides the implementation of 'helm dependency' and its respective subcommands.
-type Dependency struct {
-	Verify      bool
-	Keyring     string
-	SkipRefresh bool
+// It provides the implementation of 'hypper shared-dependency' and its respective subcommands.
+type SharedDependency struct {
+	*action.Dependency
 }
 
-// NewDependency creates a new Dependency object with the given configuration.
-func NewDependency() *Dependency {
-	return &Dependency{}
+// NewSharedDependency creates a new SharedDependency object with the given configuration.
+func NewSharedDependency() *SharedDependency {
+	return &SharedDependency{
+		action.NewDependency(),
+	}
 }
 
 // List executes 'helm dependency list'.
-func (d *Dependency) List(chartpath string, out io.Writer) error {
+func (d *SharedDependency) List(chartpath string, out io.Writer) error {
 	c, err := loader.Load(chartpath)
 	if err != nil {
 		return err
@@ -56,14 +57,14 @@ func (d *Dependency) List(chartpath string, out io.Writer) error {
 		return nil
 	}
 
-	d.printDependencies(chartpath, out, c)
+	d.printSharedDependencies(chartpath, out, c)
 	fmt.Fprintln(out)
 	d.printMissing(chartpath, out, c.Metadata.Dependencies)
 	return nil
 }
 
 // dependecyStatus returns a string describing the status of a dependency viz a viz the parent chart.
-func (d *Dependency) dependencyStatus(chartpath string, dep *chart.Dependency, parent *chart.Chart) string {
+func (d *SharedDependency) SharedDependencyStatus(chartpath string, dep *chart.Dependency, parent *chart.Chart) string {
 	filename := fmt.Sprintf("%s-%s.tgz", dep.Name, "*")
 
 	// If a chart is unpacked, this will check the unpacked chart's `charts/` directory for tarballs.
@@ -178,20 +179,20 @@ func statArchiveForStatus(archive string, dep *chart.Dependency) string {
 	return ""
 }
 
-// printDependencies prints all of the dependencies in the yaml file.
-func (d *Dependency) printDependencies(chartpath string, out io.Writer, c *chart.Chart) {
+// printSharedDependencies prints all of the shared dependencies in the yaml file.
+func (d *SharedDependency) printSharedDependencies(chartpath string, out io.Writer, c *chart.Chart) {
 	table := uitable.New()
 	table.MaxColWidth = 80
 	table.AddRow("NAME", "VERSION", "REPOSITORY", "STATUS")
 	for _, row := range c.Metadata.Dependencies {
-		table.AddRow(row.Name, row.Version, row.Repository, d.dependencyStatus(chartpath, row, c))
+		table.AddRow(row.Name, row.Version, row.Repository, d.SharedDependencyStatus(chartpath, row, c))
 	}
 	fmt.Fprintln(out, table)
 }
 
 // printMissing prints warnings about charts that are present on disk, but are
 // not in Charts.yaml.
-func (d *Dependency) printMissing(chartpath string, out io.Writer, reqs []*chart.Dependency) {
+func (d *SharedDependency) printMissing(chartpath string, out io.Writer, reqs []*chart.Dependency) {
 	folder := filepath.Join(chartpath, "charts/*")
 	files, err := filepath.Glob(folder)
 	if err != nil {
